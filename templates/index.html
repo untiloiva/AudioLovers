@@ -1,24 +1,36 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-  <title>AudioLovers</title>
+    <title>AudioLovers</title>
 </head>
-
 <body>
-  <h1>AudioLovers</h1>
-
-  {% if session.username %}
-  <p>
-    Olet kirjautunut nimellä {{ session.username }}
-  {% endif %}
-
-  <p>
-    <a href="/login">Kirjaudu sisään</a>
-    <a href="/Register">Luo tunnus</a>
-    <a href="/logout">Kirjaudu ulos</a>
-  </p>
-
+    <h1>AudioLovers</h1>
+    {% if session.username %}
+    <p>Olet kirjautunut nimellä {{ session.username }}</p>
+    {% endif %}
+    <p>
+        <a href="/login">Kirjaudu sisään</a>
+        <a href="/register">Luo tunnus</a>
+        <a href="/logout">Kirjaudu ulos</a>
+    </p>
+    <p>
+        <a href="/new_item">Lisää kappale</a>
+    </p>
+    <h2>Kappaleet</h2>
+    {% for song in songs %}
+    <div>
+        <b>{{ song["name"] }}</b> - {{ song["genre"] }} 
+        <i>lisännyt {{ song["user"] }}</i>
+        <audio controls>
+            <source src="/uploads/{{ song['filename'] }}" type="audio/mpeg">
+        </audio>
+        {% if session.username == song["user"] %}
+        <form action="/delete_song" method="post">
+            <input type="hidden" name="filename" value="{{ song['filename'] }}">
+            <input type="submit" value="Poista">
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
 </body>
-
 </html>

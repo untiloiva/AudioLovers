@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Uusi kappale</title>
+</head>
+<body>
+    <h1>Uusi kappale</h1>
+    <form action="/create_item" method="post" enctype="multipart/form-data">
+        <p>
+            Nimi: <br />
+            <input type="text" name="name" />
+        </p>
+        <p>
+            Genre: <br />
+            <textarea name="genre" rows="8" cols="20"></textarea>
+        </p>
+        <p>
+            Kappale: <br />
+            <input type="file" name="file" accept=".mp3" />
+        </p>
+        <input type="submit" value="Lisää kappale" />
+    </form>
+</body>
+</html>
