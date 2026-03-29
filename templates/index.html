@@ -16,6 +16,10 @@
     <p>
         <a href="/new_item">Lisää kappale</a>
     </p>
+    <form action="/search" method="get">
+        <input type="text" name="query" placeholder="Hae kappaleita...">
+        <input type="submit" value="Hae">
+    </form>
     <h2>Kappaleet</h2>
     {% for song in songs %}
     <div>

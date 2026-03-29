@@ -2,10 +2,10 @@ import os
 import sqlite3
 from flask import Flask
 from flask import redirect, render_template, request, session
+from flask import send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 import config
 import db
-from flask import send_from_directory
 
 app = Flask(__name__)
 app.secret_key = config.secret_key
@@ -71,7 +71,8 @@ def create():
         db.execute(sql, [username, password_hash])
     except sqlite3.IntegrityError:
         return "VIRHE: tunnus on jo varattu"
-    return "Tunnus luotu"
+    session["username"] = username
+    return redirect("/")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -87,6 +88,13 @@ def login():
             return redirect("/")
         else:
             return "VIRHE: väärä tunnus tai salasana"
+
+@app.route("/search")
+def search():
+    query = request.args.get("query", "")
+    sql = "SELECT name, genre, filename, user FROM songs WHERE name LIKE ? OR genre LIKE ? OR user LIKE ?"
+    songs = db.query(sql, [f"%{query}%", f"%{query}%", f"%{query}%"])
+    return render_template("index.html", songs=songs)
 
 @app.route("/logout")
 def logout():
