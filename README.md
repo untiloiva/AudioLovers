@@ -2,6 +2,8 @@
 - Sovelluksessa pystyy luomaan käyttäjän ja kirjautumaan ulos sekä sisään
 - Näkemään lisätyt kappaleet
 - Lisäämään kappaleita, ja poistamaan lisäämiään kappaleita
+- Kommentoimaan kappaleisiin
+- Näkemään omat lisätyt kappaleensa ja kommentit profiili sivulta
 
 # Testausohjeet
 - kirjoita terminaaliin git clone https://github.com/untiloiva/AudioLovers
