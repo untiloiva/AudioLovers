@@ -6,7 +6,8 @@ CREATE TABLE users (
 
 CREATE TABLE songs (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
+    title TEXT NOT NULL,
+    artist TEXT,
     genre TEXT NOT NULL,
     filename TEXT NOT NULL,
     user TEXT NOT NULL

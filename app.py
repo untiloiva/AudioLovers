@@ -13,7 +13,7 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 
 @app.route("/")
 def index():
-    sql = "SELECT name, genre, filename, user FROM songs"
+    sql = "SELECT name, artist, genre, filename, user FROM songs"
     songs = db.query(sql)
     return render_template("index.html", songs=songs)
 
@@ -44,13 +44,14 @@ def new_item():
 def create_item():
     if "username" not in session:
         return redirect("/login")
-    name = request.form["name"]
+    title = request.form["title"]
+    artist = request.form.get("artist", "")
     genre = request.form["genre"]
     file = request.files["file"]
     if file and file.filename.endswith(".mp3"):
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], file.filename))
-        sql = "INSERT INTO songs (name, genre, filename, user) VALUES (?, ?, ?, ?)"
-        db.execute(sql, [name, genre, file.filename, session["username"]])
+        sql = "INSERT INTO songs (name, artist, genre, filename, user) VALUES (?, ?, ?, ?, ?)"
+        db.execute(sql, [title, artist, genre, file.filename, session["username"]])
         return redirect("/")
     return "VIRHE: tiedosto ei ole mp3"
 
@@ -92,8 +93,8 @@ def login():
 @app.route("/search")
 def search():
     query = request.args.get("query", "")
-    sql = "SELECT name, genre, filename, user FROM songs WHERE name LIKE ? OR genre LIKE ? OR user LIKE ?"
-    songs = db.query(sql, [f"%{query}%", f"%{query}%", f"%{query}%"])
+    sql = "SELECT name, artist, genre, filename, user FROM songs WHERE name LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?"
+    songs = db.query(sql, [f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"])
     return render_template("index.html", songs=songs)
 
 @app.route("/logout")
