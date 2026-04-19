@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<head>
+    <title>{{ song.name }} - AudioLovers</title>
+</head>
+<body>
+    <h1>{{ song.artist or '' }} - {{ song.name }}</h1>
+<p>Genre: {{ song.genre }} | Lisännyt: {{ song.user }}</p>
+        <button onclick="playSong('/uploads/{{ song.filename }}')">▶ Play</button>
+    
+    <h2>Kommentit</h2>
+    {% for comment in comments %}
+    <div>
+        <strong>{{ comment.user }}</strong> ({{ comment.created }}): {{ comment.content }}
+        {% if session.username == comment.user %}
+        <form action="/delete_comment" method="post" style="display: inline;">
+            <input type="hidden" name="comment_id" value="{{ comment.id }}">
+            <input type="submit" value="Poista" style="font-size: small;">
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+    
+    <h3>Lisää kommentti</h3>
+    <form action="/add_comment" method="post">
+        <input type="hidden" name="song_id" value="{{ song.id }}">
+        <textarea name="content" placeholder="Kirjoita kommentti..." rows="3" cols="50" required></textarea>
+        <br>
+        <input type="submit" value="Lähetä">
+    </form>
+    
+    <p><a href="/">Takaisin</a></p>
+{% endblock %}

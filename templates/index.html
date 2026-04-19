@@ -1,40 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>AudioLovers</title>
-</head>
-<body>
-    <h1>AudioLovers</h1>
-    {% if session.username %}
-    <p>Olet kirjautunut nimellä {{ session.username }}</p>
-    {% endif %}
-    <p>
-        <a href="/login">Kirjaudu sisään</a>
-        <a href="/register">Luo tunnus</a>
-        <a href="/logout">Kirjaudu ulos</a>
-    </p>
-    <p>
-        <a href="/new_item">Lisää kappale</a>
-    </p>
-    <form action="/search" method="get">
-Hae kappaleita (nimi/artist/genre/käyttäjä)...
-        <input type="submit" value="Hae">
+{% extends "base.html" %}
+{% block content %}
+<h1>AudioLovers</h1>
+{% if session.username %}
+<p>Olet kirjautunut nimellä {{ session.username }}</p>
+{% endif %}
+<p>
+    <a href="/login">Kirjaudu sisään</a> |
+    <a href="/register">Luo tunnus</a> |
+    <a href="/profile">Profiili</a> |
+    <a href="/logout">Kirjaudu ulos</a>
+</p>
+<p><a href="/new_item">Lisää kappale</a></p>
+
+<!-- Fixed search form - main line 27 fix -->
+<form action="/search" method="get" style="margin: 20px 0;">
+    <label for="query">Hae kappaleita (nimi/artist/genre/käyttäjä):</label>
+    <input type="text" id="query" name="query" placeholder="Kirjoita hakusana..." style="width: 300px; padding: 8px; margin-left: 10px;">
+    <input type="submit" value="Hae" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+</form>
+
+<h2>Kappaleet</h2>
+{% for song in songs %}
+<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">
+    <a href="/song/{{ song[0] }}"><b>{% if song[2] %}{{ song[2] }} - {% endif %}{{ song[1] }}</b></a> 
+    - {{ song[3] }} 
+    <i>(lisännyt {{ song[5] }})</i>
+    <br>
+    <button onclick="playSong('/uploads/{{ song[4] }}')">▶ Play</button>
+    {% if session.username == song[5] %}
+    <form action="/delete_song" method="post" style="display: inline; margin-left: 10px;">
+        <input type="hidden" name="song_id" value="{{ song[0] }}">
+        <input type="submit" value="Poista" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
     </form>
-    <h2>Kappaleet</h2>
-    {% for song in songs %}
-    <div>
-{% if song["artist"] %}{{ song["artist"] }} - {% endif %}{{ song["name"] }} - {{ song["genre"] }}
-        <i>lisännyt {{ song["user"] }}</i>
-        <audio controls>
-            <source src="/uploads/{{ song['filename'] }}" type="audio/mpeg">
-        </audio>
-        {% if session.username == song["user"] %}
-        <form action="/delete_song" method="post">
-            <input type="hidden" name="filename" value="{{ song['filename'] }}">
-            <input type="submit" value="Poista">
-        </form>
-        {% endif %}
-    </div>
-    {% endfor %}
-</body>
-</html>
+    {% endif %}
+    
+    <h4>Kommentit</h4>
+    <!-- Comments list: add query later -->
+    <form action="/add_comment" method="post" style="margin-top: 10px;">
+        <input type="hidden" name="song_id" value="{{ song[0] }}">
+        <textarea name="content" placeholder="Lisää kommentti..." rows="2" cols="50" style="width: 100%; box-sizing: border-box;"></textarea>
+        <br>
+        <input type="submit" value="Kommentoi" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    </form>
+</div>
+{% endfor %}
+{% endblock %}

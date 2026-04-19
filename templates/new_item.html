@@ -1,8 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Uusi kappale</title>
-</head>
+{% extends "base.html" %}
+{% block content %}
+<h1>Uusi kappale</h1>
 <body>
     <h1>Uusi kappale</h1>
     <form action="/create_item" method="post" enctype="multipart/form-data">

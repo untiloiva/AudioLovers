@@ -13,7 +13,7 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 
 @app.route("/")
 def index():
-    sql = "SELECT name, artist, genre, filename, user FROM songs"
+    sql = "SELECT id, name, artist, genre, filename, user FROM songs"
     songs = db.query(sql)
     return render_template("index.html", songs=songs)
 
@@ -25,12 +25,13 @@ def uploaded_file(filename):
 def delete_song():
     if "username" not in session:
         return redirect("/login")
-    filename = request.form["filename"]
-    sql = "SELECT user FROM songs WHERE filename = ?"
-    result = db.query(sql, [filename])
-    if result and result[0][0] == session["username"]:
-        sql = "DELETE FROM songs WHERE filename = ?"
-        db.execute(sql, [filename])
+    song_id = request.form["song_id"]
+    sql = "SELECT filename, user FROM songs WHERE id = ?"
+    result = db.query(sql, [song_id])
+    if result and result[0][1] == session["username"]:
+        filename = result[0][0]
+        sql = "DELETE FROM songs WHERE id = ?"
+        db.execute(sql, [song_id])
         os.remove(os.path.join(app.config["UPLOAD_FOLDER"], filename))
     return redirect("/")
 
@@ -83,7 +84,10 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
         sql = "SELECT password_hash FROM users WHERE username = ?"
-        password_hash = db.query(sql, [username])[0][0]
+        result = db.query(sql, [username])
+        if not result:
+            return "VIRHE: väärä tunnus tai salasana"
+        password_hash = result[0][0]
         if check_password_hash(password_hash, password):
             session["username"] = username
             return redirect("/")
@@ -93,9 +97,61 @@ def login():
 @app.route("/search")
 def search():
     query = request.args.get("query", "")
-    sql = "SELECT name, artist, genre, filename, user FROM songs WHERE name LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?"
+    sql = "SELECT id, name, artist, genre, filename, user FROM songs WHERE name LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?"
     songs = db.query(sql, [f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"])
     return render_template("index.html", songs=songs)
+
+@app.route("/song/<int:song_id>")
+def song_page(song_id):
+    sql = "SELECT id, name, artist, genre, filename, user FROM songs WHERE id = ?"
+    song = db.query(sql, [song_id])[0]
+    sql = """
+        SELECT c.id, c.content, c.created, c.user 
+        FROM comments c 
+        WHERE c.song_id = ? 
+        ORDER BY c.created ASC
+    """
+    comments = db.query(sql, [song_id])
+    return render_template("song.html", song=song, comments=comments)
+
+@app.route("/add_comment", methods=["POST"])
+def add_comment():
+    if "username" not in session:
+        return redirect("/login")
+    content = request.form["content"]
+    song_id = request.form["song_id"]
+    sql = "INSERT INTO comments (content, song_id, user) VALUES (?, ?, ?)"
+    db.execute(sql, [content, song_id, session["username"]])
+    return redirect(request.referrer or "/")
+
+@app.route("/profile")
+def profile():
+    if "username" not in session:
+        return redirect("/login")
+    sql = "SELECT id, name, artist, genre, filename, user FROM songs WHERE user = ?"
+    songs = db.query(sql, [session["username"]])
+    sql = """
+        SELECT c.id, c.content, c.created, s.name as song_title , c.song_id
+        FROM comments c 
+        JOIN songs s ON c.song_id = s.id 
+        WHERE c.user = ? 
+        ORDER BY c.created DESC 
+        LIMIT 50
+    """
+    comments = db.query(sql, [session["username"]])
+    return render_template("profile.html", songs=songs, comments=comments)
+
+@app.route("/delete_comment", methods=["POST"])
+def delete_comment():
+    if "username" not in session:
+        return redirect("/login")
+    comment_id = request.form["comment_id"]
+    sql = "SELECT user FROM comments WHERE id = ?"
+    result = db.query(sql, [comment_id])
+    if result and result[0][0] == session["username"]:
+        sql = "DELETE FROM comments WHERE id = ?"
+        db.execute(sql, [comment_id])
+    return redirect(request.referrer or "/")
 
 @app.route("/logout")
 def logout():

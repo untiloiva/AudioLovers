@@ -12,3 +12,12 @@ CREATE TABLE songs (
     filename TEXT NOT NULL,
     user TEXT NOT NULL
 );
+
+CREATE TABLE comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT NOT NULL,
+    song_id INTEGER,
+    user TEXT NOT NULL,
+    created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(song_id) REFERENCES songs(id) ON DELETE CASCADE
+);
