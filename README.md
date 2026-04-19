@@ -5,6 +5,9 @@
 - Kommentoimaan kappaleisiin
 - Näkemään omat lisätyt kappaleensa ja kommentit profiili sivulta
 
+# Huomautus
+- Soitin toiminto ei vielä toimi oikein, se on jäänyt vielä työn alle
+
 # Testausohjeet
 - kirjoita terminaaliin git clone https://github.com/untiloiva/AudioLovers
 - cd AudioLovers
