@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -92,19 +92,29 @@
 
         /* Audio player */
         #audio-player-container {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 72px;
+            position: fixed; bottom: 0; left: 0; right: 0; height: 80px;
             background: rgba(18,18,18,0.98);
-            display: flex; align-items: center; padding: 0 24px; gap: 16px;
+            display: flex; flex-direction: column; justify-content: center;
+            padding: 8px 24px; gap: 6px;
             border-top: 1px solid #2a2a2a;
             z-index: 999;
         }
-        #song-title { flex: 1; font-size: 0.88rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #eee; }
-        #progress-bar { flex: 2; height: 4px; background: #333; border-radius: 2px; position: relative; cursor: pointer; }
-        #progress-fill { height: 100%; background: #1db954; border-radius: 2px; width: 0%; transition: width 0.5s linear; }
-        #controls { display: flex; gap: 8px; align-items: center; }
+        #player-top {
+            display: flex; align-items: center; justify-content: center; gap: 0;
+            position: relative;
+        }
+        #song-title {
+            position: absolute; left: 0;
+            font-size: 0.88rem; font-weight: 500;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: #eee; max-width: 30%;
+        }
+        #controls { display: flex; gap: 4px; align-items: center; }
         #controls button { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 6px; border-radius: 50%; }
         #controls button:hover { background: #2a2a2a; }
-        #volume { width: 80px; accent-color: #1db954; }
+        #volume { width: 80px; accent-color: #1db954; position: absolute; right: 0; }
+        #progress-bar { width: 100%; height: 4px; background: #333; border-radius: 2px; cursor: pointer; }
+        #progress-fill { height: 100%; background: #1db954; border-radius: 2px; width: 0%; transition: width 0.5s linear; }
 
         h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
         h2 { font-size: 1.2rem; font-weight: 600; margin: 20px 0 12px; color: #ccc; }
@@ -141,14 +151,16 @@
 
     <!-- Audio player -->
     <div id="audio-player-container">
-        <div id="song-title">Choose audio</div>
-        <div id="progress-bar"><div id="progress-fill"></div></div>
-        <div id="controls">
-            <button id="rewind" title="−10s">⏪</button>
-            <button id="play-pause">⏵</button>
-            <button id="forward" title="+10s">⏩</button>
+        <div id="player-top">
+            <div id="song-title">Select audio</div>
+            <div id="controls">
+                <button id="rewind" title="−10s">⏪</button>
+                <button id="play-pause">⏵</button>
+                <button id="forward" title="+10s">⏩</button>
+            </div>
             <input type="range" id="volume" min="0" max="1" step="0.01" value="0.7">
         </div>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
         <audio id="player" preload="metadata" style="display:none;"></audio>
     </div>
 
@@ -177,9 +189,9 @@
         window.playSong = async (src, title) => {
             userInteracted = true;
             p.src = src;
-            titleEl.textContent = title || 'Kappale';
+            titleEl.textContent = title || 'Audio';
             sessionStorage.setItem('audioSrc', src);
-            sessionStorage.setItem('audioTitle', title || 'Kappale');
+            sessionStorage.setItem('audioTitle', title || 'Audio');
             await p.load();
             await p.play();
             pp.textContent = '⏸';

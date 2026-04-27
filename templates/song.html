@@ -22,7 +22,7 @@
     </div>
 </div>
 
-<h2>Kommentit ({{ comments|length }})</h2>
+<h2>Comments ({{ comments|length }})</h2>
 
 {% if not comments %}
     <p style="color:#666;">No comments yet</p>
@@ -56,6 +56,6 @@
     </form>
 </div>
 {% else %}
-<p style="margin-top:20px; color:#888;"><a href="/login" style="color:#1db954;">Login/a> to comment.</p>
+<p style="margin-top:20px; color:#888;"><a href="/login" style="color:#1db954;">Log in to comment.</p>
 {% endif %}
 {% endblock %}
