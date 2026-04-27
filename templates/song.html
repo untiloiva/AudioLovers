@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <head>
-    <title>{{ song.name }} - AudioLovers</title>
+    <title>{{ song.title }} - AudioLovers</title>
 </head>
 <body>
-    <h1>{{ song.artist or '' }} - {{ song.name }}</h1>
+    <h1>{{ song.artist or '' }} - {{ song.title }}</h1>
 <p>Genre: {{ song.genre }} | Lisännyt: {{ song.user }}</p>
         <button onclick="playSong('/uploads/{{ song.filename }}')">▶ Play</button>
     

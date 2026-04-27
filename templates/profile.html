@@ -4,12 +4,12 @@
     <title>AudioLovers - Profiili</title>
 </head>
 <body>
-    <h1>Minun kappaleet</h1>
+    <h1>My Audio</h1>
     <p><a href="/">Etusivu</a> | <a href="/logout">Kirjaudu ulos</a></p>
-    <h2>{{ session.username }}'n kappaleet</h2>
+    <h2>{{ session.username }}'s Audio</h2>
     {% for song in songs %}
     <div>
-        {% if song["artist"] %}{{ song["artist"] }} - {% endif %}{{ song["name"] }} - {{ song["genre"] }}
+        {% if song["artist"] %}{{ song["artist"] }} - {% endif %}{{ song["title"] }} - {{ song["genre"] }}
 <i>({{ song["filename"] }})</i>
         <button onclick="playSong('/uploads/{{ song['filename'] }}')">▶ Play</button>
         <form action="/delete_song" method="post" style="display: inline;">
@@ -19,10 +19,10 @@
     </div>
     {% endfor %}
     {% if not songs %}
-    <p>Ei kappaleita.</p>
+    <p>No Audio.</p>
     {% endif %}
     
-    <h2>Minun kommenttini</h2>
+    <h2>My comments</h2>
     {% for comment in comments %}
     <div>
 <a href="/song/{{ comment.song_id }}"><strong>{{ comment.song_title }}</strong></a>: {{ comment.content }} 
@@ -34,6 +34,6 @@
     </div>
     {% endfor %}
     {% if not comments %}
-    <p>Ei kommentteja.</p>
+    <p>No comments</p>
     {% endif %}
 {% endblock %}

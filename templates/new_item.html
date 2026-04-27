@@ -1,26 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Uusi kappale</h1>
-<body>
-    <h1>Uusi kappale</h1>
+    <h1>New piece of Audio</h1>
     <form action="/create_item" method="post" enctype="multipart/form-data">
         <p>
-        Otsikko: <br />
-            <input type="text" name="title" />
-        <p>
-            Artisti: <br />
-            <input type="text" name="artist" />
+            Title: <br />
+            <input type="text" name="title" required />
         </p>
+        <p>
+            Artist: <br />
+            <input type="text" name="artist" />
         </p>
         <p>
             Genre: <br />
-            <textarea name="genre" rows="8" cols="20"></textarea>
+            <textarea name="genre" rows="8" cols="20" required></textarea>
         </p>
         <p>
-            Kappale: <br />
+            Audio: <br />
             <input type="file" name="file" accept=".mp3" />
         </p>
         <input type="submit" value="Lisää kappale" />
     </form>
-</body>
-</html>
+{% endblock %}

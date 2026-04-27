@@ -23,7 +23,6 @@
     <script src="/static/player.js" defer></script>
     
     <script>
-        // Inline player logic (adapted from soundcloud-player.html)
         (function() {
             const p = document.getElementById('player');
             const pp = document.getElementById('play-pause');
@@ -108,6 +107,9 @@
 
             // Keyboard
             document.onkeydown = (e) => {
+                const tag = e.target.tagName.toLowerCase();
+                const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+                if (isTyping) return;
                 ui = 1;
                 p.muted = false;
                 if (e.code === 'Space') {

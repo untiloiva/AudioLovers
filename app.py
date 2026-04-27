@@ -13,7 +13,7 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 
 @app.route("/")
 def index():
-    sql = "SELECT id, name, artist, genre, filename, user FROM songs"
+    sql = "SELECT id, title, artist, genre, filename, user FROM songs"
     songs = db.query(sql)
     return render_template("index.html", songs=songs)
 
@@ -45,13 +45,17 @@ def new_item():
 def create_item():
     if "username" not in session:
         return redirect("/login")
-    title = request.form["title"]
-    artist = request.form.get("artist", "")
-    genre = request.form["genre"]
+    title = request.form["title"].strip()
+    artist = request.form.get("artist", "").strip()
+    genre = request.form["genre"].strip()
+    if not title:
+        return "VIRHE: otsikko ei voi olla tyhjä"
+    if not genre:
+        return "VIRHE: genre ei voi olla tyhjä"
     file = request.files["file"]
     if file and file.filename.endswith(".mp3"):
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], file.filename))
-        sql = "INSERT INTO songs (name, artist, genre, filename, user) VALUES (?, ?, ?, ?, ?)"
+        sql = "INSERT INTO songs (title, artist, genre, filename, user) VALUES (?, ?, ?, ?, ?)"
         db.execute(sql, [title, artist, genre, file.filename, session["username"]])
         return redirect("/")
     return "VIRHE: tiedosto ei ole mp3"
@@ -97,13 +101,13 @@ def login():
 @app.route("/search")
 def search():
     query = request.args.get("query", "")
-    sql = "SELECT id, name, artist, genre, filename, user FROM songs WHERE name LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?"
+    sql = "SELECT id, title, artist, genre, filename, user FROM songs WHERE title LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?"
     songs = db.query(sql, [f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"])
     return render_template("index.html", songs=songs)
 
 @app.route("/song/<int:song_id>")
 def song_page(song_id):
-    sql = "SELECT id, name, artist, genre, filename, user FROM songs WHERE id = ?"
+    sql = "SELECT id, title, artist, genre, filename, user FROM songs WHERE id = ?"
     song = db.query(sql, [song_id])[0]
     sql = """
         SELECT c.id, c.content, c.created, c.user 
@@ -128,10 +132,10 @@ def add_comment():
 def profile():
     if "username" not in session:
         return redirect("/login")
-    sql = "SELECT id, name, artist, genre, filename, user FROM songs WHERE user = ?"
+    sql = "SELECT id, title, artist, genre, filename, user FROM songs WHERE user = ?"
     songs = db.query(sql, [session["username"]])
     sql = """
-        SELECT c.id, c.content, c.created, s.name as song_title , c.song_id
+        SELECT c.id, c.content, c.created, s.title as song_title , c.song_id
         FROM comments c 
         JOIN songs s ON c.song_id = s.id 
         WHERE c.user = ? 

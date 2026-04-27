@@ -18,7 +18,7 @@ document.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     const onclickStr = e.target.getAttribute('onclick') || e.target.onclick?.toString() || '';
-    const srcMatch = onclickStr.match(/['\"\\/uploads\\/[^'\"\\s]+\\.mp3['\"]/);
+    const srcMatch = onclickStr.match(/['\"\\/uploads\\/[^'\"]+\\.mp3['\"]/);
     if (srcMatch) {
       const src = srcMatch[0].replace(/['\"]/g, '');
       const songTitle = e.target.closest('div')?.querySelector('b, a, h1, h2, h3')?.textContent?.trim() || 'Song';
