@@ -1,23 +1,34 @@
 {% extends "base.html" %}
+{% block title %}Add audio – AudioLovers{% endblock %}
+
 {% block content %}
-    <h1>New piece of Audio</h1>
-    <form action="/create_item" method="post" enctype="multipart/form-data">
-        <p>
-            Title: <br />
-            <input type="text" name="title" required />
-        </p>
-        <p>
-            Artist: <br />
-            <input type="text" name="artist" />
-        </p>
-        <p>
-            Genre: <br />
-            <textarea name="genre" rows="8" cols="20" required></textarea>
-        </p>
-        <p>
-            Audio: <br />
-            <input type="file" name="file" accept=".mp3" />
-        </p>
-        <input type="submit" value="Lisää kappale" />
-    </form>
+<div class="page-header">
+    <h1>Add audio</h1>
+</div>
+
+<form action="/create_item" method="post" enctype="multipart/form-data" style="max-width:500px;">
+    <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title">
+    </div>
+    <div class="form-group">
+        <label for="artist">Artist</label>
+        <input type="text" id="artist" name="artist">
+    </div>
+    <div class="form-group">
+        <label for="genre">Genre</label>
+        <select id="genre" name="genre" required>
+            <option value="" disabled selected>Choose genre...</option>
+            {% for genre in genres %}
+            <option value="{{ genre }}">{{ genre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="file">.mp3 file</label>
+        <input type="file" id="file" name="file" accept=".mp3" required style="color:#eee;">
+    </div>
+    <button type="submit" class="btn btn-submit">Add audio</button>
+    <a href="/" style="margin-left:12px; color:#888; font-size:0.9rem;">Cancel</a>
+</form>
 {% endblock %}

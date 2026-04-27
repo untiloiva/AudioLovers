@@ -1,47 +1,50 @@
 {% extends "base.html" %}
-{% block content %}
-<h1>AudioLovers</h1>
-{% if session.username %}
-<p>Logged in as {{ session.username }}</p>
-{% endif %}
-<p>
-    <a href="/login">Login</a> |
-    <a href="/register">Sign up</a> |
-    <a href="/profile">Profile</a> |
-    <a href="/logout">Log out</output></a>
-</p>
-<p><a href="/new_item">Upload audio</a></p>
+{% block title %}{% if search_query %}Search: {{ search_query }} – {% endif %}AudioLovers{% endblock %}
 
-<!-- Fixed search form - main line 27 fix -->
-<form action="/search" method="get" style="margin: 20px 0;">
-    <label for="query">Search:</label>
-    <input type="text" id="query" name="query" placeholder="Kirjoita hakusana..." style="width: 300px; padding: 8px; margin-left: 10px;">
-    <input type="submit" value="Hae" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+{% block content %}
+<div class="page-header">
+    <h1>🎵 AudioLovers</h1>
+</div>
+
+<form class="search-bar" action="/search" method="get">
+    <input type="text" name="query" placeholder="..." value="{{ search_query or '' }}">
+    <button type="submit">Search</button>
 </form>
 
-<h2>Songs</h2>
+{% if search_query %}
+    <h2>Results for "{{ search_query }}" ({{ songs|length }} kpl)</h2>
+    <p><a href="/" style="color:#888; font-size:0.9rem;">← Back to all audio</a></p>
+{% else %}
+    <h2>All songs</h2>
+{% endif %}
+
+{% if not songs %}
+    <p style="color:#666; margin-top:20px;">
+        {% if search_query %}No search results{% else %}No audio yet <a href="/new_item" style="color:#1db954;">Add audio</a>{% endif %}
+    </p>
+{% endif %}
+
 {% for song in songs %}
-<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">
-    <a href="/song/{{ song[0] }}"><b>{% if song[2] %}{{ song[2] }} - {% endif %}{{ song[1] }}</b></a> 
-    - {{ song[3] }} 
-    <i>(lisännyt {{ song[5] }})</i>
-    <br>
-    <button onclick="playSong('/uploads/{{ song[4] }}')">▶ Play</button>
-    {% if session.username == song[5] %}
-    <form action="/delete_song" method="post" style="display: inline; margin-left: 10px;">
-        <input type="hidden" name="song_id" value="{{ song[0] }}">
-        <input type="submit" value="Poista" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
-    </form>
-    {% endif %}
-    
-    <h4>Comments</h4>
-    <!-- Comments list: add query later -->
-    <form action="/add_comment" method="post" style="margin-top: 10px;">
-        <input type="hidden" name="song_id" value="{{ song[0] }}">
-        <textarea name="content" placeholder="Comment..." rows="2" cols="50" style="width: 100%; box-sizing: border-box;"></textarea>
-        <br>
-        <input type="submit" value="send" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
-    </form>
+<div class="song-card">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+        <div>
+            <a href="/song/{{ song[0] }}" class="song-title">
+                {% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}
+            </a>
+            <div class="song-meta">
+                {{ song[3] }} &middot; added by <a href="/user/{{ song[5] }}">{{ song[5] }}</a>
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
+            <button class="btn btn-play" onclick="playSong('/uploads/{{ song[4] }}', '{% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}')">▶ Play</button>
+            {% if session.username == song[5] %}
+            <form action="/delete_song" method="post" style="display:inline;" onsubmit="return confirm('Delete song?')">
+                <input type="hidden" name="song_id" value="{{ song[0] }}">
+                <button type="submit" class="btn btn-delete">Delete</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endfor %}
 {% endblock %}

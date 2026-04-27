@@ -1,33 +1,61 @@
 {% extends "base.html" %}
+{% block title %}{{ song[2] and song[2] + ' – ' or '' }}{{ song[1] }} – AudioLovers{% endblock %}
+
 {% block content %}
-<head>
-    <title>{{ song.title }} - AudioLovers</title>
-</head>
-<body>
-    <h1>{{ song.artist or '' }} - {{ song.title }}</h1>
-<p>Genre: {{ song.genre }} | Lisännyt: {{ song.user }}</p>
-        <button onclick="playSong('/uploads/{{ song.filename }}')">▶ Play</button>
-    
-    <h2>Kommentit</h2>
-    {% for comment in comments %}
-    <div>
-        <strong>{{ comment.user }}</strong> ({{ comment.created }}): {{ comment.content }}
-        {% if session.username == comment.user %}
-        <form action="/delete_comment" method="post" style="display: inline;">
-            <input type="hidden" name="comment_id" value="{{ comment.id }}">
-            <input type="submit" value="Poista" style="font-size: small;">
+<p style="margin-bottom:16px;"><a href="/" style="color:#888;">← Return</a></p>
+
+<div class="song-card">
+    <h1 style="margin-bottom:6px;">
+        {% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}
+    </h1>
+    <div class="song-meta">
+        {{ song[3] }} &middot; added by <a href="/user/{{ song[5] }}">{{ song[5] }}</a>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn btn-play" onclick="playSong('/uploads/{{ song[4] }}', '{% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}')">▶ Play</button>
+        {% if session.username == song[5] %}
+        <form action="/delete_song" method="post" style="display:inline;" onsubmit="return confirm('Delete audio?')">
+            <input type="hidden" name="song_id" value="{{ song[0] }}">
+            <button type="submit" class="btn btn-delete">Delete audio</button>
         </form>
         {% endif %}
     </div>
-    {% endfor %}
-    
-    <h3>Lisää kommentti</h3>
-    <form action="/add_comment" method="post">
-        <input type="hidden" name="song_id" value="{{ song.id }}">
-        <textarea name="content" placeholder="Kirjoita kommentti..." rows="3" cols="50" required></textarea>
-        <br>
-        <input type="submit" value="Lähetä">
+</div>
+
+<h2>Kommentit ({{ comments|length }})</h2>
+
+{% if not comments %}
+    <p style="color:#666;">No comments yet</p>
+{% endif %}
+
+{% for comment in comments %}
+<div class="comment">
+    <div>
+        <a href="/user/{{ comment[3] }}" class="comment-user">{{ comment[3] }}</a>
+        <span class="comment-time">{{ comment[2] }}</span>
+        {% if session.username == comment[3] %}
+        <form action="/delete_comment" method="post" style="display:inline; margin-left:8px;">
+            <input type="hidden" name="comment_id" value="{{ comment[0] }}">
+            <button type="submit" style="background:none;border:none;color:#888;cursor:pointer;font-size:0.8rem;">✕ Delete</button>
+        </form>
+        {% endif %}
+    </div>
+    <div class="comment-text">{{ comment[1] }}</div>
+</div>
+{% endfor %}
+
+{% if session.username %}
+<div style="margin-top:20px;">
+    <h2>Comment</h2>
+    <form action="/add_comment" method="post" style="max-width:600px;">
+        <input type="hidden" name="song_id" value="{{ song[0] }}">
+        <div class="form-group">
+            <textarea name="content" placeholder="..." rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-submit">Comment</button>
     </form>
-    
-    <p><a href="/">Takaisin</a></p>
+</div>
+{% else %}
+<p style="margin-top:20px; color:#888;"><a href="/login" style="color:#1db954;">Login/a> to comment.</p>
+{% endif %}
 {% endblock %}

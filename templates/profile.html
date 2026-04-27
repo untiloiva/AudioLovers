@@ -1,39 +1,61 @@
 {% extends "base.html" %}
+{% block title %}{{ profile_user }} – AudioLovers{% endblock %}
+
 {% block content %}
-<head>
-    <title>AudioLovers - Profiili</title>
-</head>
-<body>
-    <h1>My Audio</h1>
-    <p><a href="/">Etusivu</a> | <a href="/logout">Kirjaudu ulos</a></p>
-    <h2>{{ session.username }}'s Audio</h2>
-    {% for song in songs %}
-    <div>
-        {% if song["artist"] %}{{ song["artist"] }} - {% endif %}{{ song["title"] }} - {{ song["genre"] }}
-<i>({{ song["filename"] }})</i>
-        <button onclick="playSong('/uploads/{{ song['filename'] }}')">▶ Play</button>
-        <form action="/delete_song" method="post" style="display: inline;">
-            <input type="hidden" name="song_id" value="{{ song[0] }}">
-            <input type="submit" value="Poista">
-        </form>
-    </div>
-    {% endfor %}
-    {% if not songs %}
-    <p>No Audio.</p>
+<div class="page-header">
+    <h1>{{ profile_user }}</h1>
+    {% if session.username == profile_user %}
+    <p style="color:#888; font-size:0.9rem; margin-top:4px;">Your profile</p>
     {% endif %}
-    
-    <h2>My comments</h2>
-    {% for comment in comments %}
-    <div>
-<a href="/song/{{ comment.song_id }}"><strong>{{ comment.song_title }}</strong></a>: {{ comment.content }} 
-        <small>({{ comment.created }})</small>
-        <form action="/delete_comment" method="post" style="display: inline;">
-            <input type="hidden" name="comment_id" value="{{ comment.id }}">
-            <input type="submit" value="Poista" style="font-size: small;">
-        </form>
+</div>
+
+<h2>Your audio ({{ songs|length }})</h2>
+
+{% if not songs %}
+    <p style="color:#666;">No audio yet</p>
+{% endif %}
+
+{% for song in songs %}
+<div class="song-card">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div>
+            <a href="/song/{{ song[0] }}" class="song-title">
+                {% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}
+            </a>
+            <div class="song-meta">{{ song[3] }}</div>
+        </div>
+        <div style="display:flex; gap:8px; flex-shrink:0;">
+            <button class="btn btn-play" onclick="playSong('/uploads/{{ song[4] }}', '{{ song[1] }}')">▶ Play</button>
+            {% if session.username == profile_user %}
+            <form action="/delete_song" method="post" style="display:inline;" onsubmit="return confirm('Delete audio?')">
+                <input type="hidden" name="song_id" value="{{ song[0] }}">
+                <button type="submit" class="btn btn-delete">Delete</button>
+            </form>
+            {% endif %}
+        </div>
     </div>
-    {% endfor %}
-    {% if not comments %}
-    <p>No comments</p>
-    {% endif %}
+</div>
+{% endfor %}
+
+<h2>Comments ({{ comments|length }})</h2>
+
+{% if not comments %}
+    <p style="color:#666;">No comments yet</p>
+{% endif %}
+
+{% for comment in comments %}
+<div class="comment">
+    <div>
+        <a href="/song/{{ comment[4] }}" style="color:#1db954; font-weight:600; text-decoration:none;">{{ comment[3] }}</a>
+        <span class="comment-time">{{ comment[2] }}</span>
+        {% if session.username == profile_user %}
+        <form action="/delete_comment" method="post" style="display:inline; margin-left:8px;">
+            <input type="hidden" name="comment_id" value="{{ comment[0] }}">
+            <button type="submit" style="background:none;border:none;color:#888;cursor:pointer;font-size:0.8rem;">✕ Delete</button>
+        </form>
+        {% endif %}
+    </div>
+    <div class="comment-text">{{ comment[1] }}</div>
+</div>
+{% endfor %}
 {% endblock %}
