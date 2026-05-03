@@ -1,4 +1,6 @@
-__pycache__
-venv
+__pycache__/
+venv/
 database.db
-uploads
+uploads/
+config.py
+``
