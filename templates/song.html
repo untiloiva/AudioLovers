@@ -2,21 +2,35 @@
 {% block title %}{{ song[2] and song[2] + ' – ' or '' }}{{ song[1] }} – AudioLovers{% endblock %}
 
 {% block content %}
-<p style="margin-bottom:16px;"><a href="/" style="color:#888;">← Return</a></p>
+<p style="margin-bottom:16px;"><a href="/" style="color:#888;">← Back</a></p>
 
-<div class="song-card">
-    <h1 style="margin-bottom:6px;">
-        {% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}
-    </h1>
-    <div class="song-meta">
-        {{ song[3] }} &middot; added by <a href="/user/{{ song[5] }}">{{ song[5] }}</a>
+<div class="song-card" style="text-align:center; padding:24px;">
+    <!-- Title and info centered above -->
+    <h1 style="margin-bottom:6px;">{{ song[1] }}</h1>
+    {% if song[2] %}
+    <p style="font-size:1.1rem; color:#aaa; margin-bottom:4px;">{{ song[2] }}</p>
+    {% endif %}
+    <div class="song-meta" style="margin-bottom:20px;">
+        {{ song[3] }} · added by <a href="/user/{{ song[5] }}">{{ song[5] }}</a>
     </div>
-    <div style="display:flex; gap:8px; margin-top:12px;">
+
+    <!-- cover image -->
+    <div style="display:flex; justify-content:center; margin-bottom:20px;">
+        {% if song[6] %}
+        <img src="/uploads/covers/{{ song[6] }}" alt="cover"
+             style="width:200px; height:200px; object-fit:cover; border-radius:12px; display:block;">
+        {% else %}
+        <div style="width:200x; height:200px; background:#2a2a2a; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:6rem;">🎵</div>
+        {% endif %}
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex; gap:8px; justify-content:center;">
         <button class="btn btn-play" onclick="playSong('/uploads/{{ song[4] }}', '{% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}')">▶ Play</button>
         {% if session.username == song[5] %}
-        <form action="/delete_song" method="post" style="display:inline;" onsubmit="return confirm('Delete audio?')">
+        <form action="/delete_song" method="post" style="display:inline;" onsubmit="return confirm('Delete this audio?')">
             <input type="hidden" name="song_id" value="{{ song[0] }}">
-            <button type="submit" class="btn btn-delete">Delete audio</button>
+            <button type="submit" class="btn btn-delete">Delete</button>
         </form>
         {% endif %}
     </div>
@@ -46,7 +60,7 @@
 
 {% if session.username %}
 <div style="margin-top:20px;">
-    <h2>Comment</h2>
+    <h2>Add a Comment</h2>
     <form action="/add_comment" method="post" style="max-width:600px;">
         <input type="hidden" name="song_id" value="{{ song[0] }}">
         <div class="form-group">
@@ -56,6 +70,6 @@
     </form>
 </div>
 {% else %}
-<p style="margin-top:20px; color:#888;"><a href="/login" style="color:#1db954;">Log in to comment.</p>
+<p style="margin-top:20px; color:#888;"><a href="/login" style="color:#1db954;">Log in</a> to leave a comment.</p>
 {% endif %}
 {% endblock %}

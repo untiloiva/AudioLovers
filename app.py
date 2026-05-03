@@ -4,6 +4,7 @@ from flask import Flask
 from flask import redirect, render_template, request, session, flash, abort
 from flask import send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import config
 import db
 
@@ -11,22 +12,28 @@ app = Flask(__name__)
 app.secret_key = config.secret_key
 app.config["UPLOAD_FOLDER"] = "uploads"
 
-# Auto-create uploads folder if it doesn't exist
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
+
+# Auto-create upload folders
+os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "avatars"), exist_ok=True)
+os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "covers"), exist_ok=True)
 
 GENRES = [
     "Pop", "Rock", "Hip-Hop", "R&B", "Jazz", "Classical",
     "Electronic", "Metal", "Country", "Folk", "Reggae",
-    "Blues", "Punk", "Indie", "Latin", "Muu"
+    "Blues", "Punk", "Indie", "Latin", "Other"
 ]
+
+def allowed_image(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 @app.route("/")
 def index():
-    sql = "SELECT id, title, artist, genre, filename, user FROM songs"
+    sql = "SELECT id, title, artist, genre, filename, user, cover_image FROM songs"
     songs = db.query(sql)
     return render_template("index.html", songs=songs)
 
-@app.route("/uploads/<filename>")
+@app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
@@ -36,22 +43,24 @@ def delete_song():
         return redirect("/login")
 
     song_id = request.form["song_id"]
-    sql = "SELECT filename, user FROM songs WHERE id = ?"
+    sql = "SELECT filename, cover_image, user FROM songs WHERE id = ?"
     result = db.query(sql, [song_id])
 
     if not result:
-        flash("Audio not found", "error")
+        flash("Audio not found.", "error")
         return redirect("/")
 
-    if result[0][1] != session["username"]:
-        flash("Not qualified to delete this", "error")
+    if result[0]["user"] != session["username"]:
+        flash("Not authorized to delete this.", "error")
         return redirect("/")
 
-    filename = result[0][0]
+    filename = result[0]["filename"]
+    cover_image = result[0]["cover_image"]
+
     sql = "DELETE FROM songs WHERE id = ?"
     db.execute(sql, [song_id])
 
-    # Only delete file if no other songs reference the same filename
+    # Only delete audio file if no other songs reference it
     sql = "SELECT COUNT(*) FROM songs WHERE filename = ?"
     count = db.query(sql, [filename])[0][0]
     if count == 0:
@@ -59,7 +68,13 @@ def delete_song():
         if os.path.exists(filepath):
             os.remove(filepath)
 
-    flash("Audio deleted", "success")
+    # Delete cover image
+    if cover_image:
+        cover_path = os.path.join(app.config["UPLOAD_FOLDER"], "covers", cover_image)
+        if os.path.exists(cover_path):
+            os.remove(cover_path)
+
+    flash("Audio deleted.", "success")
     return redirect(request.referrer or "/")
 
 @app.route("/new_item")
@@ -78,31 +93,70 @@ def create_item():
     genre = request.form["genre"].strip()
 
     if not title:
-        flash("Please add title", "error")
+        flash("Title cannot be empty.", "error")
         return redirect("/new_item")
-
     if not genre:
-        flash("Please choose genre", "error")
+        flash("Genre cannot be empty.", "error")
         return redirect("/new_item")
 
     file = request.files["file"]
     if not file or not file.filename.endswith(".mp3"):
-        flash("File must be .mp3", "error")
+        flash("File must be in MP3 format.", "error")
         return redirect("/new_item")
 
-    # Insert first to get the auto-generated song_id, then use it as filename
-    sql = "INSERT INTO songs (title, artist, genre, filename, user) VALUES (?, ?, ?, ?, ?)"
-    db.execute(sql, [title, artist, genre, "_tmp", session["username"]])
+    # Insert first to get song_id, use it as filename
+    sql = "INSERT INTO songs (title, artist, genre, filename, cover_image, user) VALUES (?, ?, ?, ?, ?, ?)"
+    db.execute(sql, [title, artist, genre, "_tmp", None, session["username"]])
     song_id = db.last_insert_id()
 
     filename = f"{song_id}.mp3"
     file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-    sql = "UPDATE songs SET filename = ? WHERE id = ?"
-    db.execute(sql, [filename, song_id])
+    # Handle optional cover image
+    cover_filename = None
+    cover_file = request.files.get("cover_image")
+    if cover_file and cover_file.filename and allowed_image(cover_file.filename):
+        ext = cover_file.filename.rsplit(".", 1)[1].lower()
+        cover_filename = f"{song_id}.{ext}"
+        cover_file.save(os.path.join(app.config["UPLOAD_FOLDER"], "covers", cover_filename))
 
-    flash("Audio added", "success")
+    sql = "UPDATE songs SET filename = ?, cover_image = ? WHERE id = ?"
+    db.execute(sql, [filename, cover_filename, song_id])
+
+    flash("Audio added successfully!", "success")
     return redirect("/")
+
+@app.route("/upload_avatar", methods=["POST"])
+def upload_avatar():
+    if "username" not in session:
+        return redirect("/login")
+
+    file = request.files.get("avatar")
+    if not file or not file.filename:
+        flash("No file selected.", "error")
+        return redirect(f"/user/{session['username']}")
+
+    if not allowed_image(file.filename):
+        flash("File must be an image (jpg, png, webp, gif).", "error")
+        return redirect(f"/user/{session['username']}")
+
+    # Delete old avatar
+    sql = "SELECT avatar FROM users WHERE username = ?"
+    result = db.query(sql, [session["username"]])
+    if result and result[0]["avatar"]:
+        old_path = os.path.join(app.config["UPLOAD_FOLDER"], "avatars", result[0]["avatar"])
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    avatar_filename = f"{session['username']}.{ext}"
+    file.save(os.path.join(app.config["UPLOAD_FOLDER"], "avatars", avatar_filename))
+
+    sql = "UPDATE users SET avatar = ? WHERE username = ?"
+    db.execute(sql, [avatar_filename, session["username"]])
+
+    flash("Profile picture updated!", "success")
+    return redirect(f"/user/{session['username']}")
 
 @app.route("/register")
 def register():
@@ -115,7 +169,7 @@ def create():
     password2 = request.form["password2"]
 
     if password1 != password2:
-        flash("Passwords dont match", "error")
+        flash("Passwords do not match.", "error")
         return redirect("/register")
 
     password_hash = generate_password_hash(password1)
@@ -123,7 +177,7 @@ def create():
         sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)"
         db.execute(sql, [username, password_hash])
     except sqlite3.IntegrityError:
-        flash("Username already in use", "error")
+        flash("Username already taken.", "error")
         return redirect("/register")
 
     session["username"] = username
@@ -142,7 +196,7 @@ def login():
     result = db.query(sql, [username])
 
     if not result or not check_password_hash(result[0][0], password):
-        flash("Wrong username or password", "error")
+        flash("Wrong username or password.", "error")
         return redirect("/login")
 
     session["username"] = username
@@ -152,15 +206,14 @@ def login():
 @app.route("/search")
 def search():
     query = request.args.get("query", "")
-    sql = "SELECT id, title, artist, genre, filename, user FROM songs WHERE title LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?"
+    sql = "SELECT id, title, artist, genre, filename, user, cover_image FROM songs WHERE title LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?"
     songs = db.query(sql, [f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"])
     return render_template("index.html", songs=songs, search_query=query)
 
 @app.route("/song/<int:song_id>")
 def song_page(song_id):
-    sql = "SELECT id, title, artist, genre, filename, user FROM songs WHERE id = ?"
+    sql = "SELECT id, title, artist, genre, filename, user, cover_image FROM songs WHERE id = ?"
     result = db.query(sql, [song_id])
-
     if not result:
         abort(404)
 
@@ -183,7 +236,7 @@ def add_comment():
     song_id = request.form["song_id"]
 
     if not content:
-        flash("Comment cant be empty.", "error")
+        flash("Comment cannot be empty.", "error")
         return redirect(request.referrer or "/")
 
     sql = "INSERT INTO comments (content, song_id, user) VALUES (?, ?, ?)"
@@ -198,12 +251,14 @@ def profile():
 
 @app.route("/user/<username>")
 def user_profile(username):
-    sql = "SELECT id FROM users WHERE username = ?"
+    sql = "SELECT id, avatar FROM users WHERE username = ?"
     user = db.query(sql, [username])
     if not user:
         abort(404)
 
-    sql = "SELECT id, title, artist, genre, filename, user FROM songs WHERE user = ?"
+    avatar = user[0]["avatar"]
+
+    sql = "SELECT id, title, artist, genre, filename, user, cover_image FROM songs WHERE user = ?"
     songs = db.query(sql, [username])
 
     sql = """
@@ -215,7 +270,7 @@ def user_profile(username):
         LIMIT 50
     """
     comments = db.query(sql, [username])
-    return render_template("profile.html", songs=songs, comments=comments, profile_user=username)
+    return render_template("profile.html", songs=songs, comments=comments, profile_user=username, avatar=avatar)
 
 @app.route("/delete_comment", methods=["POST"])
 def delete_comment():
@@ -229,14 +284,14 @@ def delete_comment():
     if result and result[0][0] == session["username"]:
         sql = "DELETE FROM comments WHERE id = ?"
         db.execute(sql, [comment_id])
-        flash("Comment deleted", "success")
+        flash("Comment deleted.", "success")
 
     return redirect(request.referrer or "/")
 
 @app.route("/logout")
 def logout():
     del session["username"]
-    flash("Logged out", "success")
+    flash("You have been logged out.", "success")
     return redirect("/")
 
 @app.errorhandler(404)

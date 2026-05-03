@@ -1,7 +1,8 @@
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL
+    password_hash TEXT NOT NULL,
+    avatar TEXT
 );
 
 CREATE TABLE songs (
@@ -10,6 +11,7 @@ CREATE TABLE songs (
     artist TEXT,
     genre TEXT NOT NULL,
     filename TEXT NOT NULL,
+    cover_image TEXT,
     user TEXT NOT NULL
 );
 

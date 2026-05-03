@@ -128,7 +128,7 @@
         {% if session.username %}
             <a href="/user/{{ session.username }}" class="username">{{ session.username }}</a>
             <a href="/new_item">+ Add audio</a>
-            <a href="/logout">Log out</a>
+            <a href="/logout">Log out</output></a>
         {% else %}
             <a href="/login">Log in</a>
             <a href="/register">Sign up</a>
@@ -152,7 +152,7 @@
     <!-- Audio player -->
     <div id="audio-player-container">
         <div id="player-top">
-            <div id="song-title">Select audio</div>
+            <div id="song-title">Select Audio</div>
             <div id="controls">
                 <button id="rewind" title="−10s">⏪</button>
                 <button id="play-pause">⏵</button>
@@ -171,7 +171,7 @@
         const vol = document.getElementById('volume');
         const titleEl = document.getElementById('song-title');
         const fill = document.getElementById('progress-fill');
-        let userInteracted = false;
+        const container = document.querySelector('.container');
 
         p.volume = 0.7;
         vol.oninput = () => { p.volume = vol.value; };
@@ -181,31 +181,72 @@
         };
 
         pp.onclick = async () => {
-            userInteracted = true;
             if (p.paused || p.ended) { await p.play(); pp.textContent = '⏸'; }
             else { p.pause(); pp.textContent = '⏵'; }
         };
 
         window.playSong = async (src, title) => {
-            userInteracted = true;
             p.src = src;
             titleEl.textContent = title || 'Audio';
-            sessionStorage.setItem('audioSrc', src);
-            sessionStorage.setItem('audioTitle', title || 'Audio');
             await p.load();
             await p.play();
             pp.textContent = '⏸';
         };
 
-        // Restore across page navigations
-        window.addEventListener('load', async () => {
-            const src = sessionStorage.getItem('audioSrc');
-            const title = sessionStorage.getItem('audioTitle');
-            if (src) {
-                p.src = src;
-                titleEl.textContent = title || 'Audio';
-                await p.load();
+        const nav = document.querySelector('nav');
+
+        function updatePage(doc, url) {
+            const newContainer = doc.querySelector('.container');
+            if (newContainer) container.innerHTML = newContainer.innerHTML;
+            const newNav = doc.querySelector('nav');
+            if (newNav) nav.innerHTML = newNav.innerHTML;
+            window.history.pushState({}, doc.title, url);
+            document.title = doc.title;
+        }
+
+        // Fetch-based navigation — replaces .container and nav, audio keeps playing
+        async function navigate(url) {
+            try {
+                const res = await fetch(url);
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                updatePage(doc, res.url);
+            } catch(e) {
+                window.location.href = url;
             }
+        }
+
+        // Intercept all internal link clicks
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (!link) return;
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto')) return;
+            if (href === '/logout') return;
+            e.preventDefault();
+            navigate(href);
+        });
+
+        // Intercept all POST form submissions so audio never stops
+        document.addEventListener('submit', async (e) => {
+            const form = e.target;
+            if (form.method.toLowerCase() !== 'post') return;
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            try {
+                const res = await fetch(form.action, { method: 'POST', body: formData });
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                updatePage(doc, res.url);
+            } catch(e) {
+                form.submit();
+            }
+        });
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', () => {
+            navigate(window.location.pathname + window.location.search);
         });
 
         document.getElementById('rewind').onclick = () => { p.currentTime = Math.max(0, p.currentTime - 10); };
