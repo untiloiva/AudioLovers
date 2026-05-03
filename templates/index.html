@@ -3,56 +3,55 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>🎵 AudioLovers</h1>
+    <h1>AudioLovers</h1>
 </div>
 
 <form class="search-bar" action="/search" method="get">
-    <input type="text" name="query" placeholder="Search songs, artists, genres..." value="{{ search_query or '' }}">
+    <input type="text" name="query" placeholder="search..." {{ search_query or '' }}">
     <button type="submit">Search</button>
 </form>
 
 {% if search_query %}
     <h2>Results for "{{ search_query }}" ({{ songs|length }})</h2>
-    <p><a href="/" style="color:#888; font-size:0.9rem;">← All songs</a></p>
+    <p><a href="/" style="color:#888; font-size:0.9rem;">← All audio</a></p>
 {% else %}
-    <h2>All Songs</h2>
+    <h2>All audio</h2>
 {% endif %}
 
 {% if not songs %}
-    <p style="color:#666; margin-top:20px;">
-        {% if search_query %}No results found.{% else %}No audio yet. <a href="/new_item" style="color:#1db954;"></a>{% endif %}
-    </p>
+    <p style="color:#666; margin-top:20px;">{% if search_query %}No results found.{% else %}No audio yet.{% endif %}</p>
 {% endif %}
 
 {% for song in songs %}
 <div class="song-card">
     <div style="display:flex; gap:14px; align-items:center;">
-        <!-- Cover image -->
         <div style="flex-shrink:0;">
-            {% if song[6] %}
-            <img src="/uploads/covers/{{ song[6] }}" alt="cover"
+            {% if song["cover_image"] %}
+            <img src="/uploads/covers/{{ song['cover_image'] }}" alt="cover"
                  style="width:60px; height:60px; object-fit:cover; border-radius:6px; display:block;">
             {% else %}
             <div style="width:60px; height:60px; background:#2a2a2a; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">🎵</div>
             {% endif %}
         </div>
         <div style="flex:1; min-width:0;">
-            <a href="/song/{{ song[0] }}" class="song-title">
-                {% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}
+            <a href="/song/{{ song['id'] }}" class="song-title">
+                {% if song["artist"] %}{{ song["artist"] }} – {% endif %}{{ song["title"] }}
             </a>
             <div class="song-meta">
-                {{ song[3] }} · added by <a href="/user/{{ song[5] }}">{{ song[5] }}</a>
+                {{ song["genre"] }} · added by <a href="/user/{{ song['user'] }}">{{ song["user"] }}</a>
             </div>
+            <audio controls src="/uploads/{{ song['filename'] }}" preload="none"></audio>
         </div>
-        <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
-            <button class="btn btn-play" onclick="playSong('/uploads/{{ song[4] }}', '{% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}')">▶ Play</button>
-            {% if session.username == song[5] %}
-            <form action="/delete_song" method="post" style="display:inline;" onsubmit="return confirm('Delete this song?')">
-                <input type="hidden" name="song_id" value="{{ song[0] }}">
+        {% if session.username == song["user"] %}
+        <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+            <a href="/edit_song/{{ song['id'] }}" class="btn btn-edit">Edit</a>
+            <form action="/delete_song" method="post" onsubmit="return confirm('Delete this audio?')">
+                <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+                <input type="hidden" name="song_id" value="{{ song['id'] }}">
                 <button type="submit" class="btn btn-delete">Delete</button>
             </form>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
 {% endfor %}

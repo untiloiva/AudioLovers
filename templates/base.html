@@ -6,7 +6,7 @@
     <title>{% block title %}AudioLovers{% endblock %}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #eee; padding-bottom: 100px; }
+        body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #eee; }
 
         nav {
             background: #1a1a1a;
@@ -24,25 +24,12 @@
 
         .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
 
-        /* Flash messages */
         .flashes { list-style: none; margin-bottom: 20px; }
-        .flashes li {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
+        .flashes li { padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem; }
         .flashes .success { background: #1a3a1a; border: 1px solid #1db954; color: #1db954; }
         .flashes .error   { background: #3a1a1a; border: 1px solid #dc3545; color: #ff6b6b; }
 
-        /* Cards */
-        .song-card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 14px;
-        }
+        .song-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
         .song-card:hover { border-color: #3a3a3a; }
         .song-title { font-weight: 600; font-size: 1rem; color: #fff; text-decoration: none; }
         .song-title:hover { color: #1db954; }
@@ -50,85 +37,52 @@
         .song-meta a { color: #aaa; text-decoration: none; }
         .song-meta a:hover { color: #fff; }
 
-        /* Buttons */
         .btn { display: inline-block; padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.85rem; text-decoration: none; }
-        .btn-play   { background: #1db954; color: #000; font-weight: 600; }
+        .btn-green  { background: #1db954; color: #000; font-weight: 600; }
         .btn-delete { background: #c0392b; color: #fff; }
+        .btn-edit   { background: #2a2a2a; color: #eee; border: 1px solid #444; }
         .btn-submit { background: #1db954; color: #000; font-weight: 600; padding: 8px 20px; }
         .btn:hover  { opacity: 0.85; }
 
-        /* Forms */
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; margin-bottom: 6px; color: #bbb; font-size: 0.9rem; }
         .form-group input[type=text],
         .form-group input[type=password],
         .form-group select,
         .form-group textarea {
-            width: 100%;
-            padding: 10px 12px;
-            background: #222;
-            border: 1px solid #333;
-            border-radius: 6px;
-            color: #eee;
-            font-size: 0.95rem;
-            font-family: inherit;
+            width: 100%; padding: 10px 12px; background: #222;
+            border: 1px solid #333; border-radius: 6px; color: #eee;
+            font-size: 0.95rem; font-family: inherit;
         }
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline: none; border-color: #1db954; }
 
-        /* Search */
         .search-bar { display: flex; gap: 8px; margin: 20px 0; }
         .search-bar input { flex: 1; padding: 10px 14px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #eee; font-size: 0.95rem; }
         .search-bar input:focus { outline: none; border-color: #1db954; }
         .search-bar button { padding: 10px 20px; background: #1db954; color: #000; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
-        /* Comment */
         .comment { padding: 10px 0; border-bottom: 1px solid #2a2a2a; font-size: 0.9rem; }
         .comment:last-child { border-bottom: none; }
-        .comment-user { color: #1db954; font-weight: 600; }
+        .comment-user { color: #1db954; font-weight: 600; text-decoration: none; }
         .comment-time { color: #666; font-size: 0.78rem; margin-left: 8px; }
         .comment-text { color: #ccc; margin-top: 4px; }
-
-        /* Audio player */
-        #audio-player-container {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 80px;
-            background: rgba(18,18,18,0.98);
-            display: flex; flex-direction: column; justify-content: center;
-            padding: 8px 24px; gap: 6px;
-            border-top: 1px solid #2a2a2a;
-            z-index: 999;
-        }
-        #player-top {
-            display: flex; align-items: center; justify-content: center; gap: 0;
-            position: relative;
-        }
-        #song-title {
-            position: absolute; left: 0;
-            font-size: 0.88rem; font-weight: 500;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            color: #eee; max-width: 30%;
-        }
-        #controls { display: flex; gap: 4px; align-items: center; }
-        #controls button { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 6px; border-radius: 50%; }
-        #controls button:hover { background: #2a2a2a; }
-        #volume { width: 80px; accent-color: #1db954; position: absolute; right: 0; }
-        #progress-bar { width: 100%; height: 4px; background: #333; border-radius: 2px; cursor: pointer; }
-        #progress-fill { height: 100%; background: #1db954; border-radius: 2px; width: 0%; transition: width 0.5s linear; }
 
         h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
         h2 { font-size: 1.2rem; font-weight: 600; margin: 20px 0 12px; color: #ccc; }
         .page-header { margin-bottom: 24px; }
+
+        audio { width: 100%; margin-top: 10px; }
     </style>
-    {% block head %}{% endblock %}
 </head>
 <body>
     <nav>
-        <a href="/" class="brand">🎵 AudioLovers</a>
+        <a href="/" class="brand">AudioLovers</a>
         {% if session.username %}
             <a href="/user/{{ session.username }}" class="username">{{ session.username }}</a>
             <a href="/new_item">+ Add audio</a>
-            <a href="/logout">Log out</output></a>
+            <a href="/logout">Log out</a>
         {% else %}
             <a href="/login">Log in</a>
             <a href="/register">Sign up</a>
@@ -148,118 +102,5 @@
 
         {% block content %}{% endblock %}
     </div>
-
-    <!-- Audio player -->
-    <div id="audio-player-container">
-        <div id="player-top">
-            <div id="song-title">Select Audio</div>
-            <div id="controls">
-                <button id="rewind" title="−10s">⏪</button>
-                <button id="play-pause">⏵</button>
-                <button id="forward" title="+10s">⏩</button>
-            </div>
-            <input type="range" id="volume" min="0" max="1" step="0.01" value="0.7">
-        </div>
-        <div id="progress-bar"><div id="progress-fill"></div></div>
-        <audio id="player" preload="metadata" style="display:none;"></audio>
-    </div>
-
-    <script>
-    (function() {
-        const p = document.getElementById('player');
-        const pp = document.getElementById('play-pause');
-        const vol = document.getElementById('volume');
-        const titleEl = document.getElementById('song-title');
-        const fill = document.getElementById('progress-fill');
-        const container = document.querySelector('.container');
-
-        p.volume = 0.7;
-        vol.oninput = () => { p.volume = vol.value; };
-
-        p.ontimeupdate = () => {
-            if (p.duration) fill.style.width = (p.currentTime / p.duration * 100) + '%';
-        };
-
-        pp.onclick = async () => {
-            if (p.paused || p.ended) { await p.play(); pp.textContent = '⏸'; }
-            else { p.pause(); pp.textContent = '⏵'; }
-        };
-
-        window.playSong = async (src, title) => {
-            p.src = src;
-            titleEl.textContent = title || 'Audio';
-            await p.load();
-            await p.play();
-            pp.textContent = '⏸';
-        };
-
-        const nav = document.querySelector('nav');
-
-        function updatePage(doc, url) {
-            const newContainer = doc.querySelector('.container');
-            if (newContainer) container.innerHTML = newContainer.innerHTML;
-            const newNav = doc.querySelector('nav');
-            if (newNav) nav.innerHTML = newNav.innerHTML;
-            window.history.pushState({}, doc.title, url);
-            document.title = doc.title;
-        }
-
-        // Fetch-based navigation — replaces .container and nav, audio keeps playing
-        async function navigate(url) {
-            try {
-                const res = await fetch(url);
-                const html = await res.text();
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                updatePage(doc, res.url);
-            } catch(e) {
-                window.location.href = url;
-            }
-        }
-
-        // Intercept all internal link clicks
-        document.addEventListener('click', (e) => {
-            const link = e.target.closest('a');
-            if (!link) return;
-            const href = link.getAttribute('href');
-            if (!href || href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto')) return;
-            if (href === '/logout') return;
-            e.preventDefault();
-            navigate(href);
-        });
-
-        // Intercept all POST form submissions so audio never stops
-        document.addEventListener('submit', async (e) => {
-            const form = e.target;
-            if (form.method.toLowerCase() !== 'post') return;
-            e.preventDefault();
-
-            const formData = new FormData(form);
-            try {
-                const res = await fetch(form.action, { method: 'POST', body: formData });
-                const html = await res.text();
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                updatePage(doc, res.url);
-            } catch(e) {
-                form.submit();
-            }
-        });
-
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', () => {
-            navigate(window.location.pathname + window.location.search);
-        });
-
-        document.getElementById('rewind').onclick = () => { p.currentTime = Math.max(0, p.currentTime - 10); };
-        document.getElementById('forward').onclick = () => { p.currentTime = Math.min(p.duration || 0, p.currentTime + 10); };
-
-        document.onkeydown = (e) => {
-            const tag = e.target.tagName.toLowerCase();
-            if (['input','textarea','select'].includes(tag)) return;
-            if (e.code === 'Space') { e.preventDefault(); pp.click(); }
-            else if (e.code === 'ArrowRight') p.currentTime += 10;
-            else if (e.code === 'ArrowLeft') p.currentTime -= 10;
-        };
-    })();
-    </script>
 </body>
 </html>

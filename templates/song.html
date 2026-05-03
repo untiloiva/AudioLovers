@@ -1,60 +1,62 @@
 {% extends "base.html" %}
-{% block title %}{{ song[2] and song[2] + ' – ' or '' }}{{ song[1] }} – AudioLovers{% endblock %}
+{% block title %}{{ song["artist"] and song["artist"] + ' – ' or '' }}{{ song["title"] }} – AudioLovers{% endblock %}
 
 {% block content %}
 <p style="margin-bottom:16px;"><a href="/" style="color:#888;">← Back</a></p>
 
 <div class="song-card" style="text-align:center; padding:24px;">
-    <!-- Title and info centered above -->
-    <h1 style="margin-bottom:6px;">{{ song[1] }}</h1>
-    {% if song[2] %}
-    <p style="font-size:1.1rem; color:#aaa; margin-bottom:4px;">{{ song[2] }}</p>
+    <h1 style="margin-bottom:6px;">{{ song["title"] }}</h1>
+    {% if song["artist"] %}
+    <p style="font-size:1.1rem; color:#aaa; margin-bottom:4px;">{{ song["artist"] }}</p>
     {% endif %}
     <div class="song-meta" style="margin-bottom:20px;">
-        {{ song[3] }} · added by <a href="/user/{{ song[5] }}">{{ song[5] }}</a>
+        {{ song["genre"] }} · added by <a href="/user/{{ song['user'] }}">{{ song["user"] }}</a>
     </div>
 
-    <!-- cover image -->
     <div style="display:flex; justify-content:center; margin-bottom:20px;">
-        {% if song[6] %}
-        <img src="/uploads/covers/{{ song[6] }}" alt="cover"
+        {% if song["cover_image"] %}
+        <img src="/uploads/covers/{{ song['cover_image'] }}" alt="cover"
              style="width:200px; height:200px; object-fit:cover; border-radius:12px; display:block;">
         {% else %}
-        <div style="width:200x; height:200px; background:#2a2a2a; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:6rem;">🎵</div>
+        <div style="width:200px; height:200px; background:#2a2a2a; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:6rem;">🎵</div>
         {% endif %}
     </div>
 
-    <!-- Buttons -->
-    <div style="display:flex; gap:8px; justify-content:center;">
-        <button class="btn btn-play" onclick="playSong('/uploads/{{ song[4] }}', '{% if song[2] %}{{ song[2] }} – {% endif %}{{ song[1] }}')">▶ Play</button>
-        {% if session.username == song[5] %}
+    <audio controls src="/uploads/{{ song['filename'] }}" style="width:100%; max-width:500px;"></audio>
+
+    {% if session.username == song["user"] %}
+    <div style="display:flex; gap:8px; justify-content:center; margin-top:16px;">
+        <a href="/edit_song/{{ song['id'] }}" class="btn btn-edit">Edit</a>
         <form action="/delete_song" method="post" style="display:inline;" onsubmit="return confirm('Delete this audio?')">
-            <input type="hidden" name="song_id" value="{{ song[0] }}">
+            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+            <input type="hidden" name="song_id" value="{{ song['id'] }}">
             <button type="submit" class="btn btn-delete">Delete</button>
         </form>
-        {% endif %}
     </div>
+    {% endif %}
 </div>
 
 <h2>Comments ({{ comments|length }})</h2>
 
 {% if not comments %}
-    <p style="color:#666;">No comments yet</p>
+    <p style="color:#666;">No comments yet.</p>
 {% endif %}
 
 {% for comment in comments %}
 <div class="comment">
     <div>
-        <a href="/user/{{ comment[3] }}" class="comment-user">{{ comment[3] }}</a>
-        <span class="comment-time">{{ comment[2] }}</span>
-        {% if session.username == comment[3] %}
+        <a href="/user/{{ comment['user'] }}" class="comment-user">{{ comment["user"] }}</a>
+        <span class="comment-time">{{ comment["created"] }}</span>
+        {% if session.username == comment["user"] %}
         <form action="/delete_comment" method="post" style="display:inline; margin-left:8px;">
-            <input type="hidden" name="comment_id" value="{{ comment[0] }}">
+            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+            <input type="hidden" name="comment_id" value="{{ comment['id'] }}">
+            <input type="hidden" name="song_id" value="{{ song['id'] }}">
             <button type="submit" style="background:none;border:none;color:#888;cursor:pointer;font-size:0.8rem;">✕ Delete</button>
         </form>
         {% endif %}
     </div>
-    <div class="comment-text">{{ comment[1] }}</div>
+    <div class="comment-text">{{ comment["content"] }}</div>
 </div>
 {% endfor %}
 
@@ -62,11 +64,12 @@
 <div style="margin-top:20px;">
     <h2>Add a Comment</h2>
     <form action="/add_comment" method="post" style="max-width:600px;">
-        <input type="hidden" name="song_id" value="{{ song[0] }}">
+        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+        <input type="hidden" name="song_id" value="{{ song['id'] }}">
         <div class="form-group">
-            <textarea name="content" placeholder="..." rows="3" required></textarea>
+            <textarea name="content" placeholder="Write a comment..." rows="3" required></textarea>
         </div>
-        <button type="submit" class="btn btn-submit">Comment</button>
+        <button type="submit" class="btn btn-submit">Post</button>
     </form>
 </div>
 {% else %}

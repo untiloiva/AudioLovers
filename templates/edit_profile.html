@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile – AudioLovers{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Edit Profile</h1>
+</div>
+
+<form action="/update_profile" method="post" enctype="multipart/form-data" style="max-width:500px;">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+
+    <div class="form-group">
+        <label>Profile Picture</label>
+        <div style="margin-bottom:12px;">
+            {% if user["avatar"] %}
+            <img src="/uploads/avatars/{{ user['avatar'] }}" alt="avatar"
+                 style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:2px solid #2a2a2a; display:block; margin-bottom:10px;">
+            {% else %}
+            <div style="width:90px; height:90px; border-radius:50%; background:#2a2a2a; display:flex; align-items:center; justify-content:center; font-size:2.5rem; margin-bottom:10px;">👤</div>
+            {% endif %}
+        </div>
+        <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp,.gif" style="color:#eee;">
+        <small style="color:#666; display:block; margin-top:4px;">Leave empty to keep current photo.</small>
+    </div>
+
+    <div class="form-group">
+        <label for="bio">Bio</label>
+        <textarea id="bio" name="bio" rows="4" placeholder="Tell others a bit about yourself...">{{ user["bio"] or '' }}</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-submit">Save Changes</button>
+    <a href="/user/{{ user['username'] }}" style="margin-left:12px; color:#888; font-size:0.9rem;">Cancel</a>
+</form>
+{% endblock %}

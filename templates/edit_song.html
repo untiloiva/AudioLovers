@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Edit – {{ song["title"] }} – AudioLovers{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Edit Audio</h1>
+</div>
+
+<form action="/update_song" method="post" enctype="multipart/form-data" style="max-width:500px;">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <input type="hidden" name="song_id" value="{{ song['id'] }}">
+
+    <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required value="{{ song['title'] }}">
+    </div>
+    <div class="form-group">
+        <label for="artist">Artist</label>
+        <input type="text" id="artist" name="artist" value="{{ song['artist'] or '' }}">
+    </div>
+    <div class="form-group">
+        <label for="genre">Genre</label>
+        <select id="genre" name="genre" required>
+            {% for genre in genres %}
+            <option value="{{ genre }}" {% if genre == song["genre"] %}selected{% endif %}>{{ genre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="cover_image">Cover Image <span style="color:#666;">(optional, leave empty to keep current)</span></label>
+        {% if song["cover_image"] %}
+        <div style="margin-bottom:10px;">
+            <img src="/uploads/covers/{{ song['cover_image'] }}" alt="current cover"
+                 style="width:80px; height:80px; object-fit:cover; border-radius:6px;">
+            <span style="color:#888; font-size:0.85rem; margin-left:8px;">Current cover</span>
+        </div>
+        {% endif %}
+        <input type="file" id="cover_image" name="cover_image" accept=".jpg,.jpeg,.png,.webp,.gif" style="color:#eee;">
+    </div>
+
+    <button type="submit" class="btn btn-submit">Save Changes</button>
+    <a href="/song/{{ song['id'] }}" style="margin-left:12px; color:#888; font-size:0.9rem;">Cancel</a>
+</form>
+{% endblock %}
