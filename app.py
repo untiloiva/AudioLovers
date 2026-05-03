@@ -1,12 +1,16 @@
 import os
 import sqlite3
 import secrets
-from flask import Flask
-from flask import redirect, render_template, request, session, flash, abort
-from flask import send_from_directory
+
+from flask import (
+    Flask, redirect, render_template, request,
+    session, flash, abort, send_from_directory
+)
 from werkzeug.security import generate_password_hash, check_password_hash
+
 import config
 import db
+
 
 app = Flask(__name__)
 app.secret_key = config.secret_key
@@ -14,8 +18,10 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
 
-os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "avatars"), exist_ok=True)
-os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "covers"), exist_ok=True)
+avatars_path = os.path.join(app.config["UPLOAD_FOLDER"], "avatars")
+covers_path = os.path.join(app.config["UPLOAD_FOLDER"], "covers")
+os.makedirs(avatars_path, exist_ok=True)
+os.makedirs(covers_path, exist_ok=True)
 
 GENRES = [
     "Pop", "Rock", "Hip-Hop", "R&B", "Jazz", "Classical",
@@ -23,33 +29,49 @@ GENRES = [
     "Blues", "Punk", "Indie", "Latin", "Other"
 ]
 
+
+# ---------- Helpers ----------
+
 def allowed_image(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+    if "." not in filename:
+        return False
+    return filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
 
 def check_csrf():
     if request.form.get("csrf_token") != session.get("csrf_token"):
         abort(403)
+
 
 @app.before_request
 def set_csrf_token():
     if "csrf_token" not in session:
         session["csrf_token"] = secrets.token_hex(16)
 
+
+# ---------- Routes ----------
+
 @app.route("/")
 def index():
-    sql = "SELECT id, title, artist, genre, filename, user, cover_image FROM songs"
+    sql = """
+        SELECT id, title, artist, genre, filename, user, cover_image
+        FROM songs
+    """
     songs = db.query(sql)
     return render_template("index.html", songs=songs)
+
 
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
 
 @app.route("/new_item")
 def new_item():
     if "username" not in session:
         return redirect("/login")
     return render_template("new_item.html", genres=GENRES)
+
 
 @app.route("/create_item", methods=["POST"])
 def create_item():
@@ -69,11 +91,14 @@ def create_item():
         return redirect("/new_item")
 
     file = request.files["file"]
-    if not file or not file.filename.endswith(".mp3"):
+    if not file or not file.filename.lower().endswith(".mp3"):
         flash("File must be in MP3 format.", "error")
         return redirect("/new_item")
 
-    sql = "INSERT INTO songs (title, artist, genre, filename, cover_image, user) VALUES (?, ?, ?, ?, ?, ?)"
+    sql = """
+        INSERT INTO songs (title, artist, genre, filename, cover_image, user)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """
     db.execute(sql, [title, artist, genre, "_tmp", None, session["username"]])
     song_id = db.last_insert_id()
 
@@ -85,28 +110,34 @@ def create_item():
     if cover_file and cover_file.filename and allowed_image(cover_file.filename):
         ext = cover_file.filename.rsplit(".", 1)[1].lower()
         cover_filename = f"{song_id}.{ext}"
-        cover_file.save(os.path.join(app.config["UPLOAD_FOLDER"], "covers", cover_filename))
+        cover_file.save(os.path.join(covers_path, cover_filename))
 
-    sql = "UPDATE songs SET filename = ?, cover_image = ? WHERE id = ?"
-    db.execute(sql, [filename, cover_filename, song_id])
+    db.execute(
+        "UPDATE songs SET filename = ?, cover_image = ? WHERE id = ?",
+        [filename, cover_filename, song_id],
+    )
 
     flash("Audio added successfully!", "success")
     return redirect("/")
+
 
 @app.route("/edit_song/<int:song_id>")
 def edit_song(song_id):
     if "username" not in session:
         return redirect("/login")
 
-    sql = "SELECT id, title, artist, genre, cover_image, user FROM songs WHERE id = ?"
-    result = db.query(sql, [song_id])
-    if not result:
+    song = db.query(
+        "SELECT id, title, artist, genre, cover_image, user FROM songs WHERE id = ?",
+        [song_id],
+    )
+    if not song:
         abort(404)
-    if result[0]["user"] != session["username"]:
+    if song[0]["user"] != session["username"]:
         flash("Not authorized to edit this.", "error")
         return redirect("/")
 
-    return render_template("edit_song.html", song=result[0], genres=GENRES)
+    return render_template("edit_song.html", song=song[0], genres=GENRES)
+
 
 @app.route("/update_song", methods=["POST"])
 def update_song():
@@ -119,36 +150,38 @@ def update_song():
     artist = request.form.get("artist", "").strip()
     genre = request.form["genre"].strip()
 
-    if not title:
-        flash("Title cannot be empty.", "error")
-        return redirect(f"/edit_song/{song_id}")
-    if not genre:
-        flash("Genre cannot be empty.", "error")
+    if not title or not genre:
+        flash("Title and genre are required.", "error")
         return redirect(f"/edit_song/{song_id}")
 
-    sql = "SELECT user, cover_image FROM songs WHERE id = ?"
-    result = db.query(sql, [song_id])
-    if not result or result[0]["user"] != session["username"]:
+    song = db.query("SELECT user, cover_image FROM songs WHERE id = ?", [song_id])
+    if not song or song[0]["user"] != session["username"]:
         abort(403)
 
-    # Handle new cover image
-    cover_filename = result[0]["cover_image"]
+    cover_filename = song[0]["cover_image"]
     cover_file = request.files.get("cover_image")
     if cover_file and cover_file.filename and allowed_image(cover_file.filename):
-        # Delete old cover
         if cover_filename:
-            old_path = os.path.join(app.config["UPLOAD_FOLDER"], "covers", cover_filename)
-            if os.path.exists(old_path):
-                os.remove(old_path)
+            old = os.path.join(covers_path, cover_filename)
+            if os.path.exists(old):
+                os.remove(old)
+
         ext = cover_file.filename.rsplit(".", 1)[1].lower()
         cover_filename = f"{song_id}.{ext}"
-        cover_file.save(os.path.join(app.config["UPLOAD_FOLDER"], "covers", cover_filename))
+        cover_file.save(os.path.join(covers_path, cover_filename))
 
-    sql = "UPDATE songs SET title = ?, artist = ?, genre = ?, cover_image = ? WHERE id = ?"
-    db.execute(sql, [title, artist, genre, cover_filename, song_id])
+    db.execute(
+        """
+        UPDATE songs
+        SET title = ?, artist = ?, genre = ?, cover_image = ?
+        WHERE id = ?
+        """,
+        [title, artist, genre, cover_filename, song_id],
+    )
 
     flash("Audio updated successfully!", "success")
     return redirect(f"/song/{song_id}")
+
 
 @app.route("/delete_song", methods=["POST"])
 def delete_song():
@@ -157,46 +190,46 @@ def delete_song():
     check_csrf()
 
     song_id = request.form["song_id"]
-    sql = "SELECT filename, cover_image, user FROM songs WHERE id = ?"
-    result = db.query(sql, [song_id])
+    song = db.query(
+        "SELECT filename, cover_image, user FROM songs WHERE id = ?", [song_id]
+    )
 
-    if not result:
-        flash("Audio not found.", "error")
-        return redirect("/")
-    if result[0]["user"] != session["username"]:
-        flash("Not authorized to delete this.", "error")
+    if not song or song[0]["user"] != session["username"]:
+        flash("Not authorized.", "error")
         return redirect("/")
 
-    filename = result[0]["filename"]
-    cover_image = result[0]["cover_image"]
+    filename = song[0]["filename"]
+    cover = song[0]["cover_image"]
 
-    sql = "DELETE FROM songs WHERE id = ?"
-    db.execute(sql, [song_id])
+    db.execute("DELETE FROM songs WHERE id = ?", [song_id])
 
-    sql = "SELECT COUNT(*) FROM songs WHERE filename = ?"
-    count = db.query(sql, [filename])[0][0]
-    if count == 0:
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        if os.path.exists(filepath):
-            os.remove(filepath)
+    if not db.query("SELECT 1 FROM songs WHERE filename = ?", [filename]):
+        path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        if os.path.exists(path):
+            os.remove(path)
 
-    if cover_image:
-        cover_path = os.path.join(app.config["UPLOAD_FOLDER"], "covers", cover_image)
+    if cover:
+        cover_path = os.path.join(covers_path, cover)
         if os.path.exists(cover_path):
             os.remove(cover_path)
 
     flash("Audio deleted.", "success")
     return redirect("/")
 
+
 @app.route("/edit_profile")
 def edit_profile():
     if "username" not in session:
         return redirect("/login")
-    sql = "SELECT username, avatar, bio FROM users WHERE username = ?"
-    result = db.query(sql, [session["username"]])
-    if not result:
+
+    user = db.query(
+        "SELECT username, avatar, bio FROM users WHERE username = ?",
+        [session["username"]],
+    )
+    if not user:
         abort(404)
-    return render_template("edit_profile.html", user=result[0])
+    return render_template("edit_profile.html", user=user[0])
+
 
 @app.route("/update_profile", methods=["POST"])
 def update_profile():
@@ -205,44 +238,45 @@ def update_profile():
     check_csrf()
 
     bio = request.form.get("bio", "").strip()
-
-    # Handle avatar upload
-    sql = "SELECT avatar FROM users WHERE username = ?"
-    result = db.query(sql, [session["username"]])
-    avatar_filename = result[0]["avatar"] if result else None
+    avatar = db.query(
+        "SELECT avatar FROM users WHERE username = ?", [session["username"]]
+    )[0]["avatar"]
 
     file = request.files.get("avatar")
     if file and file.filename and allowed_image(file.filename):
-        if avatar_filename:
-            old_path = os.path.join(app.config["UPLOAD_FOLDER"], "avatars", avatar_filename)
-            if os.path.exists(old_path):
-                os.remove(old_path)
-        ext = file.filename.rsplit(".", 1)[1].lower()
-        avatar_filename = f"{session['username']}.{ext}"
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], "avatars", avatar_filename))
+        if avatar:
+            old = os.path.join(avatars_path, avatar)
+            if os.path.exists(old):
+                os.remove(old)
 
-    sql = "UPDATE users SET avatar = ?, bio = ? WHERE username = ?"
-    db.execute(sql, [avatar_filename, bio, session["username"]])
+        ext = file.filename.rsplit(".", 1)[1].lower()
+        avatar = f"{session['username']}.{ext}"
+        file.save(os.path.join(avatars_path, avatar))
+
+    db.execute(
+        "UPDATE users SET avatar = ?, bio = ? WHERE username = ?",
+        [avatar, bio, session["username"]],
+    )
 
     flash("Profile updated!", "success")
     return redirect(f"/user/{session['username']}")
+
 
 @app.route("/register")
 def register():
     return render_template("register.html")
 
+
 @app.route("/create", methods=["POST"])
 def create():
     check_csrf()
+
     username = request.form["username"].strip()
     password1 = request.form["password1"]
     password2 = request.form["password2"]
 
-    if not username:
-        flash("Username cannot be empty.", "error")
-        return redirect("/register")
-    if " " in username:
-        flash("Username cannot contain spaces.", "error")
+    if not username or " " in username:
+        flash("Invalid username.", "error")
         return redirect("/register")
     if password1 != password2:
         flash("Passwords do not match.", "error")
@@ -251,22 +285,23 @@ def create():
         flash("Password must be at least 8 characters.", "error")
         return redirect("/register")
     if not any(c.islower() for c in password1):
-        flash("Password must contain at least one lowercase letter.", "error")
+        flash("Password must contain a lowercase letter.", "error")
         return redirect("/register")
     if not any(c.isupper() for c in password1):
-        flash("Password must contain at least one uppercase letter.", "error")
+        flash("Password must contain an uppercase letter.", "error")
         return redirect("/register")
     if not any(c.isdigit() for c in password1):
-        flash("Password must contain at least one number.", "error")
+        flash("Password must contain a number.", "error")
         return redirect("/register")
     if not any(c in "!@#$%^&*()_+-=[]{}|;':\",./<>?" for c in password1):
-        flash("Password must contain at least one special character.", "error")
+        flash("Password must contain a special character.", "error")
         return redirect("/register")
 
-    password_hash = generate_password_hash(password1)
     try:
-        sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)"
-        db.execute(sql, [username, password_hash])
+        db.execute(
+            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+            [username, generate_password_hash(password1)],
+        )
     except sqlite3.IntegrityError:
         flash("Username already taken.", "error")
         return redirect("/register")
@@ -275,19 +310,20 @@ def create():
     flash(f"Welcome, {username}!", "success")
     return redirect("/")
 
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
         return render_template("login.html")
-    check_csrf()
 
+    check_csrf()
     username = request.form["username"]
     password = request.form["password"]
 
-    sql = "SELECT password_hash FROM users WHERE username = ?"
-    result = db.query(sql, [username])
-
-    if not result or not check_password_hash(result[0][0], password):
+    user = db.query(
+        "SELECT password_hash FROM users WHERE username = ?", [username]
+    )
+    if not user or not check_password_hash(user[0][0], password):
         flash("Wrong username or password.", "error")
         return redirect("/login")
 
@@ -295,23 +331,43 @@ def login():
     flash(f"Welcome back, {username}!", "success")
     return redirect("/")
 
+
 @app.route("/search")
 def search():
-    query = request.args.get("query", "")
-    sql = "SELECT id, title, artist, genre, filename, user, cover_image FROM songs WHERE title LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?"
-    songs = db.query(sql, [f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"])
-    return render_template("index.html", songs=songs, search_query=query)
+    q = request.args.get("query", "")
+    like = f"%{q}%"
+    songs = db.query(
+        """
+        SELECT id, title, artist, genre, filename, user, cover_image
+        FROM songs
+        WHERE title LIKE ? OR genre LIKE ? OR artist LIKE ? OR user LIKE ?
+        """,
+        [like, like, like, like],
+    )
+    return render_template("index.html", songs=songs, search_query=q)
+
 
 @app.route("/song/<int:song_id>")
 def song_page(song_id):
-    sql = "SELECT id, title, artist, genre, filename, user, cover_image FROM songs WHERE id = ?"
-    result = db.query(sql, [song_id])
-    if not result:
+    song = db.query(
+        "SELECT id, title, artist, genre, filename, user, cover_image FROM songs WHERE id = ?",
+        [song_id],
+    )
+    if not song:
         abort(404)
-    song = result[0]
-    sql = "SELECT id, content, created, user FROM comments WHERE song_id = ? ORDER BY created ASC"
-    comments = db.query(sql, [song_id])
-    return render_template("song.html", song=song, comments=comments)
+
+    comments = db.query(
+        """
+        SELECT id, content, created, user
+        FROM comments
+        WHERE song_id = ?
+        ORDER BY created ASC
+        """,
+        [song_id],
+    )
+
+    return render_template("song.html", song=song[0], comments=comments)
+
 
 @app.route("/add_comment", methods=["POST"])
 def add_comment():
@@ -326,9 +382,13 @@ def add_comment():
         flash("Comment cannot be empty.", "error")
         return redirect(f"/song/{song_id}")
 
-    sql = "INSERT INTO comments (content, song_id, user) VALUES (?, ?, ?)"
-    db.execute(sql, [content, song_id, session["username"]])
+    db.execute(
+        "INSERT INTO comments (content, song_id, user) VALUES (?, ?, ?)",
+        [content, song_id, session["username"]],
+    )
+
     return redirect(f"/song/{song_id}")
+
 
 @app.route("/profile")
 def profile():
@@ -336,28 +396,40 @@ def profile():
         return redirect("/login")
     return redirect(f"/user/{session['username']}")
 
+
 @app.route("/user/<username>")
 def user_profile(username):
-    sql = "SELECT id, avatar, bio FROM users WHERE username = ?"
-    user = db.query(sql, [username])
+    user = db.query(
+        "SELECT avatar, bio FROM users WHERE username = ?", [username]
+    )
     if not user:
         abort(404)
 
-    avatar = user[0]["avatar"]
-    bio = user[0]["bio"]
-    sql = "SELECT id, title, artist, genre, filename, user, cover_image FROM songs WHERE user = ?"
-    songs = db.query(sql, [username])
+    songs = db.query(
+        "SELECT * FROM songs WHERE user = ?", [username]
+    )
 
-    sql = """
-        SELECT c.id, c.content, c.created, s.title as song_title, c.song_id, c.user
+    comments = db.query(
+        """
+        SELECT c.id, c.content, c.created, s.title AS song_title, c.song_id, c.user
         FROM comments c
         JOIN songs s ON c.song_id = s.id
         WHERE c.user = ?
         ORDER BY c.created DESC
         LIMIT 50
-    """
-    comments = db.query(sql, [username])
-    return render_template("profile.html", songs=songs, comments=comments, profile_user=username, avatar=avatar, bio=bio)
+        """,
+        [username],
+    )
+
+    return render_template(
+        "profile.html",
+        profile_user=username,
+        avatar=user[0]["avatar"],
+        bio=user[0]["bio"],
+        songs=songs,
+        comments=comments,
+    )
+
 
 @app.route("/delete_comment", methods=["POST"])
 def delete_comment():
@@ -365,27 +437,28 @@ def delete_comment():
         return redirect("/login")
     check_csrf()
 
-    comment_id = request.form["comment_id"]
+    cid = request.form["comment_id"]
     song_id = request.form.get("song_id", "")
-    sql = "SELECT user FROM comments WHERE id = ?"
-    result = db.query(sql, [comment_id])
 
-    if result and result[0][0] == session["username"]:
-        sql = "DELETE FROM comments WHERE id = ?"
-        db.execute(sql, [comment_id])
+    owner = db.query("SELECT user FROM comments WHERE id = ?", [cid])
+    if owner and owner[0][0] == session["username"]:
+        db.execute("DELETE FROM comments WHERE id = ?", [cid])
         flash("Comment deleted.", "success")
 
     return redirect(f"/song/{song_id}" if song_id else "/")
 
+
 @app.route("/logout")
 def logout():
-    del session["username"]
+    session.pop("username", None)
     flash("You have been logged out.", "success")
     return redirect("/")
 
+
 @app.errorhandler(404)
-def page_not_found(e):
+def not_found(e):
     return render_template("404.html"), 404
+
 
 @app.errorhandler(403)
 def forbidden(e):
